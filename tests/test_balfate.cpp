@@ -1,230 +1,212 @@
-#include "../include/entities.hpp"
-#include "../include/factory.hpp"
-#include "../include/fight.hpp"
+#include "../include/dragon.hpp"
+#include "../include/knight.hpp"
+#include "../include/pegasus.hpp"
 #include "../include/npc.hpp"
-#include "../include/observer.hpp"
 #include <gtest/gtest.h>
 #include <memory>
+#include <sstream>
 
-TEST(NPCTest, BearCanKill) {
-auto bear = NPCFactory::createNPC(KhightType, 0, 0, "Khight");
-auto werewolf = NPCFactory::createNPC(DragonType, 0, 0, "Dragon");
-auto bandit = NPCFactory::createNPC(PegasType, 0, 0, "Pegas");
-auto anotherBear = NPCFactory::createNPC(KhightType, 0, 0, "Khight!");
-// Медведь убивает оборотней
-EXPECT_TRUE(bear->canKill(*werewolf));
-
-// Медведь НЕ убивает разбойников
-EXPECT_FALSE(bear->canKill(*bandit));
-
-// Медведь НЕ убивает других медведей
-EXPECT_FALSE(bear->canKill(*anotherBear));
+TEST(NPCTest, KnightCreation) {
+  Knight k(100, 200, "TestKnight");
+  EXPECT_EQ(k.get_x(), 100);
+  EXPECT_EQ(k.get_y(), 200);
+  EXPECT_EQ(k.get_name(), "TestKnight");
 }
 
-TEST(NPCTest, WerewolfCanKill) {
-auto werewolf = NPCFactory::createNPC(DragonType, 0, 0, "Dragon");
-auto bandit = NPCFactory::createNPC(PegasType, 0, 0, "Pegas");
-auto bear = NPCFactory::createNPC(KhightType, 0, 0, "Khight");
-auto anotherWerewolf = NPCFactory::createNPC(DragonType, 0, 0, "Dragon!");
-
-// Оборотень убивает разбойников
-EXPECT_TRUE(werewolf->canKill(*bandit));
-
-// Оборотень НЕ убивает медведей
-EXPECT_FALSE(werewolf->canKill(*bear));
-
-// Оборотень НЕ убивает других оборотней
-EXPECT_FALSE(werewolf->canKill(*anotherWerewolf));
+TEST(NPCTest, DragonCreation) {
+  Dragon d(50, 75, "TestDragon");
+  EXPECT_EQ(d.get_x(), 50);
+  EXPECT_EQ(d.get_y(), 75);
+  EXPECT_EQ(d.get_name(), "TestDragon");
 }
 
-TEST(NPCTest, BanditCannotKill) {
-auto bandit = NPCFactory::createNPC(PegasType, 0, 0, "Pegas");
-auto bear = NPCFactory::createNPC(KhightType, 0, 0, "Khight");
-auto werewolf = NPCFactory::createNPC(DragonType, 0, 0, "Dragon");
-auto anotherBandit = NPCFactory::createNPC(PegasType, 0, 0, "Pegas!");
-
-// Разбойник НИКОГО не убивает
-EXPECT_FALSE(bandit->canKill(*bear));
-EXPECT_FALSE(bandit->canKill(*werewolf));
-EXPECT_FALSE(bandit->canKill(*anotherBandit));
+TEST(NPCTest, PegasusCreation) {
+  Pegasus p(300, 400, "TestPegasus");
+  EXPECT_EQ(p.get_x(), 300);
+  EXPECT_EQ(p.get_y(), 400);
+  EXPECT_EQ(p.get_name(), "TestPegasus");
 }
 
-// Тесты для боевой системы
-TEST(FightTest, BearKillsWerewolfInRange) {
-auto bear = NPCFactory::createNPC(KhightType, 0, 0, "Khight");
-auto werewolf = NPCFactory::createNPC(DragonType, 10, 0, "Dragon");
-
-// Создаем наблюдатель для отслеживания убийств
-auto observer = std::make_shared<ConsoleObserver>();
-bear->attach(observer);
-werewolf->attach(observer);
-
-FightVisitor visitor(bear, 15.0f); // Дистанция 10, диапазон 15
-visitor.visit(werewolf);
-
-EXPECT_FALSE(werewolf->isAlive()); // Оборотень должен быть убит
-EXPECT_TRUE(bear->isAlive());      // Медведь должен остаться жив
+TEST(NPCTest, IsCloseTrue) {
+  auto k1 = std::make_shared<Knight>(0, 0, "K1");
+  auto k2 = std::make_shared<Knight>(3, 4, "K2");
+  EXPECT_TRUE(k1->is_close(k2, 5));
 }
 
-TEST(FightTest, WerewolfKillsBanditInRange) {
-auto werewolf = NPCFactory::createNPC(DragonType, 0, 0, "Dragon");
-auto bandit = NPCFactory::createNPC(PegasType, 5, 5, "Pegas");
-
-FightVisitor visitor(werewolf, 10.0f); // Дистанция ~7.07, диапазон 10
-visitor.visit(bandit);
-
-EXPECT_FALSE(bandit->isAlive());   // Разбойник должен быть убит
-EXPECT_TRUE(werewolf->isAlive());  // Оборотень должен остаться жив
+TEST(NPCTest, IsCloseFalse) {
+  auto k1 = std::make_shared<Knight>(0, 0, "K1");
+  auto k2 = std::make_shared<Knight>(10, 10, "K2");
+  EXPECT_FALSE(k1->is_close(k2, 5));
 }
 
-TEST(FightTest, BanditCannotKillBear) {
-auto bandit = NPCFactory::createNPC(PegasType, 0, 0, "Pegas");
-auto bear = NPCFactory::createNPC(KhightType, 1, 1, "Khight");
-
-FightVisitor visitor(bandit, 10.0f); // Дистанция ~1.41, диапазон 10
-visitor.visit(bear);
-
-EXPECT_TRUE(bear->isAlive());    // Медведь должен остаться жив
-EXPECT_TRUE(bandit->isAlive());  // Разбойник также жив
+TEST(NPCTest, IsCloseExactDistance) {
+  auto k1 = std::make_shared<Knight>(0, 0, "K1");
+  auto k2 = std::make_shared<Knight>(3, 4, "K2");
+  EXPECT_TRUE(k1->is_close(k2, 5));
+  EXPECT_FALSE(k1->is_close(k2, 4));
 }
 
-TEST(FightTest, NoKillOutOfRange) {
-auto bear = NPCFactory::createNPC(KhightType, 0, 0, "Khight");
-auto werewolf = NPCFactory::createNPC(DragonType, 100, 100, "Dragon");
+TEST(FightTest, KnightKillsDragon) {
+  auto knight = std::make_shared<Knight>(0, 0, "K");
+  auto dragon = std::make_shared<Dragon>(0, 0, "D");
 
-FightVisitor visitor(bear, 10.0f); // Дистанция ~141, диапазон 10
-visitor.visit(werewolf);
-
-EXPECT_TRUE(werewolf->isAlive()); // Оборотень жив, так как вне диапазона
+  bool result = dragon->accept(knight);
+  EXPECT_TRUE(result);
 }
 
-TEST(FightTest, DeadNPCsCannotFight) {
-auto bear = NPCFactory::createNPC(KhightType, 0, 0, "Khight");
-auto werewolf = NPCFactory::createNPC(DragonType, 10, 10, "Dragon");
+TEST(FightTest, DragonKillsPegasus) {
+  auto dragon = std::make_shared<Dragon>(0, 0, "D");
+  auto pegasus = std::make_shared<Pegasus>(0, 0, "P");
 
-// Убиваем медведя
-bear->kill();
-
-FightVisitor visitor(bear, 20.0f);
-visitor.visit(werewolf);
-
-EXPECT_TRUE(werewolf->isAlive()); // Оборотень жив, так как медведь мертв
+  bool result = pegasus->accept(dragon);
+  EXPECT_TRUE(result);
 }
 
-TEST(FightTest, DeadVictimCannotBeKilledAgain) {
-auto bear = NPCFactory::createNPC(KhightType, 0, 0, "Khight");
-auto werewolf = NPCFactory::createNPC(DragonType, 5, 5, "Dragon");
+TEST(FightTest, PegasusDoesNotKillKnight) {
+  auto pegasus = std::make_shared<Pegasus>(0, 0, "P");
+  auto knight = std::make_shared<Knight>(0, 0, "K");
 
-// Убиваем оборотня
-werewolf->kill();
-
-FightVisitor visitor(bear, 10.0f);
-visitor.visit(werewolf);
-
-// Проверяем, что оборотень остается мертвым
-EXPECT_FALSE(werewolf->isAlive());
+  bool result = knight->accept(pegasus);
+  EXPECT_FALSE(result);
 }
 
-// Тесты для фабрики
-TEST(FactoryTest, CreateAllTypes) {
-auto bear = NPCFactory::createNPC(KhightType, 0, 0, "Khight");
-EXPECT_NE(bear, nullptr);
-EXPECT_EQ(bear->getType(), KhightType);
+TEST(FightTest, KnightDoesNotKillKnight) {
+  auto k1 = std::make_shared<Knight>(0, 0, "K1");
+  auto k2 = std::make_shared<Knight>(0, 0, "K2");
 
-auto werewolf = NPCFactory::createNPC(DragonType, 1, 1, "Dragon");
-EXPECT_NE(werewolf, nullptr);
-EXPECT_EQ(werewolf->getType(), DragonType);
-
-auto bandit = NPCFactory::createNPC(PegasType, 2, 2, "Pegas");
-EXPECT_NE(bandit, nullptr);
-EXPECT_EQ(bandit->getType(), PegasType);
-
-// Неизвестный тип
-auto unknown = NPCFactory::createNPC(Unknown, 3, 3, "Unknown");
-EXPECT_EQ(unknown, nullptr);
+  bool result = k2->accept(k1);
+  EXPECT_FALSE(result);
 }
 
-TEST(FactoryTest, NPCProperties) {
-auto npc = NPCFactory::createNPC(KhightType, 10.5f, 20.5f, "TestKhight");
+TEST(FightTest, DragonDoesNotKillDragon) {
+  auto s1 = std::make_shared<Dragon>(0, 0, "D1");
+  auto s2 = std::make_shared<Dragon>(0, 0, "D2");
 
-EXPECT_EQ(npc->getX(), 10.5f);
-EXPECT_EQ(npc->getY(), 20.5f);
-EXPECT_EQ(npc->getName(), "TestKhight");
-EXPECT_TRUE(npc->isAlive()); // NPC должен быть жив при создании
-
-npc->kill();
-EXPECT_FALSE(npc->isAlive()); // После убийства должен быть мертв
+  bool result = s2->accept(s1);
+  EXPECT_FALSE(result);
 }
 
-// Тесты для наблюдателей
-TEST(ObserverTest, ConsoleObserver) {
-auto bear = NPCFactory::createNPC(KhightType, 0, 0, "Khight");
-auto werewolf = NPCFactory::createNPC(DragonType, 1, 1, "Dragon");
+TEST(FightTest, PegasusDoesNotKillPegasus) {
+  auto p1 = std::make_shared<Pegasus>(0, 0, "P1");
+  auto p2 = std::make_shared<Pegasus>(0, 0, "P2");
 
-auto consoleObserver = std::make_shared<ConsoleObserver>();
-bear->attach(consoleObserver);
-
-// Перенаправляем вывод cout для проверки
-std::stringstream buffer;
-std::streambuf* old = std::cout.rdbuf(buffer.rdbuf());
-
-bear->notify(werewolf);
-
-std::cout.rdbuf(old); // Восстанавливаем cout
-std::string output = buffer.str();
-
-// Проверяем, что в выводе есть имена убийцы и жертвы
-EXPECT_NE(output.find("Khight"), std::string::npos);
-EXPECT_NE(output.find("Dragon"), std::string::npos);
+  bool result = p2->accept(p1);
+  EXPECT_FALSE(result);
 }
 
-// Тесты для цепочки убийств
-TEST(ChainTest, CompleteKillChain) {
-std::vector<std::shared_ptr<NPC>> npcs;
+TEST(SaveLoadTest, KnightSaveLoad) {
+  std::stringstream ss;
+  Knight k1(100, 200, "TestKnight");
+  k1.save(ss);
 
-// Создаем NPC всех типов
-npcs.push_back(NPCFactory::createNPC(KhightType, 0, 0, "Knight1"));
-npcs.push_back(NPCFactory::createNPC(DragonType, 10, 0, "Dragon1"));
-npcs.push_back(NPCFactory::createNPC(PegasType, 20, 0, "Pegas1"));
+  int type;
+  ss >> type;
+  EXPECT_EQ(type, KnightType);
 
-// Добавляем наблюдателей
-auto consoleObserver = std::make_shared<ConsoleObserver>();
-for (auto& npc : npcs) {
-    npc->attach(consoleObserver);
+  Knight k2(ss);
+  EXPECT_EQ(k2.get_x(), 100);
+  EXPECT_EQ(k2.get_y(), 200);
+  EXPECT_EQ(k2.get_name(), "TestKnight");
 }
 
-// Медведь убивает оборотня
-FightVisitor visitor1(npcs[0], 15.0f); // Khight -> Dragon
-visitor1.visit(npcs[1]);
-EXPECT_FALSE(npcs[1]->isAlive());
-EXPECT_TRUE(npcs[0]->isAlive());
+TEST(SaveLoadTest, DragonSaveLoad) {
+  std::stringstream ss;
+  Dragon d1(50, 75, "TestDragon");
+  d1.save(ss);
 
-// Оборотень уже мертв, не может никого убить
+  int type;
+  ss >> type;
+  EXPECT_EQ(type, DragonType);
 
-// Разбойник не может убить медведя
-FightVisitor visitor2(npcs[2], 25.0f); // Pegas -> Khight
-visitor2.visit(npcs[0]);
-EXPECT_TRUE(npcs[0]->isAlive()); // Медведь должен остаться жив
-
-// Оборотень убил бы разбойника, если бы был жив
-// Но он мертв, поэтому ничего не происходит
+  Dragon d2(ss);
+  EXPECT_EQ(d2.get_x(), 50);
+  EXPECT_EQ(d2.get_y(), 75);
+  EXPECT_EQ(d2.get_name(), "TestDragon");
 }
 
-TEST(ChainTest, NoCyclicKills) {
-auto bear = NPCFactory::createNPC(KhightType, 0, 0, "Khight");
-auto werewolf = NPCFactory::createNPC(DragonType, 5, 0, "Dragon");
-auto bandit = NPCFactory::createNPC(PegasType, 10, 0, "Pegas");
+TEST(SaveLoadTest, PegasusSaveLoad) {
+  std::stringstream ss;
+  Pegasus p1(300, 400, "TestPegasus");
+  p1.save(ss);
 
-// Проверяем, что нет цикла убийств
-EXPECT_TRUE(bear->canKill(*werewolf));
-EXPECT_TRUE(werewolf->canKill(*bandit));
-EXPECT_FALSE(bandit->canKill(*bear));
+  int type;
+  ss >> type;
+  EXPECT_EQ(type, PegasusType);
 
-// Это линейная цепочка: Khight -> Dragon -> Pegas
-// Pegas никого не убивает, замыкая цепочку
+  Pegasus p2(ss);
+  EXPECT_EQ(p2.get_x(), 300);
+  EXPECT_EQ(p2.get_y(), 400);
+  EXPECT_EQ(p2.get_name(), "TestPegasus");
 }
 
-int main(int argc, char** argv) {
-::testing::InitGoogleTest(&argc, argv);
-return RUN_ALL_TESTS();
+class MockObserver : public IFightObserver {
+public:
+  int fight_count = 0;
+  int win_count = 0;
+
+  void on_fight(const std::shared_ptr<NPC> attacker,
+                const std::shared_ptr<NPC> defender, bool win) override {
+    fight_count++;
+    if (win)
+      win_count++;
+  }
+};
+
+TEST(ObserverTest, ObserverNotification) {
+  auto observer = std::make_shared<MockObserver>();
+  auto knight = std::make_shared<Knight>(0, 0, "K");
+  auto dragon = std::make_shared<Dragon>(0, 0, "D");
+
+  knight->subscribe(observer);
+  dragon->accept(knight);
+
+  EXPECT_EQ(observer->fight_count, 1);
+  EXPECT_EQ(observer->win_count, 1);
+}
+
+TEST(ObserverTest, MultipleObservers) {
+  auto obs1 = std::make_shared<MockObserver>();
+  auto obs2 = std::make_shared<MockObserver>();
+
+  auto knight = std::make_shared<Knight>(0, 0, "K");
+  auto dragon = std::make_shared<Dragon>(0, 0, "D");
+
+  knight->subscribe(obs1);
+  knight->subscribe(obs2);
+
+  dragon->accept(knight);
+
+  EXPECT_EQ(obs1->fight_count, 1);
+  EXPECT_EQ(obs2->fight_count, 1);
+}
+
+TEST(BattleTest, ChainReaction) {
+  auto knight = std::make_shared<Knight>(0, 0, "K");
+  auto dragon = std::make_shared<Dragon>(5, 0, "D");
+  auto pegasus = std::make_shared<Pegasus>(10, 0, "P");
+
+  EXPECT_TRUE(dragon->accept(knight));
+  EXPECT_TRUE(pegasus->accept(dragon));
+  EXPECT_FALSE(knight->accept(pegasus));
+}
+
+TEST(DistanceTest, ExactlyAtBorder) {
+  auto k1 = std::make_shared<Knight>(0, 0, "K1");
+  auto k2 = std::make_shared<Knight>(5, 0, "K2");
+
+  EXPECT_TRUE(k1->is_close(k2, 5));
+  EXPECT_FALSE(k1->is_close(k2, 4));
+}
+
+TEST(DistanceTest, DiagonalDistance) {
+  auto k1 = std::make_shared<Knight>(0, 0, "K1");
+  auto k2 = std::make_shared<Knight>(30, 40, "K2");
+
+  EXPECT_TRUE(k1->is_close(k2, 50));
+  EXPECT_FALSE(k1->is_close(k2, 49));
+}
+
+int main(int argc, char **argv) {
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }
